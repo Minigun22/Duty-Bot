@@ -51,6 +51,8 @@ public class DutyBot extends TelegramLongPollingBot {
 	private final String groupId = "-1001693217220";
 
 	private final static String adminId = "805427030";
+	
+	private static boolean isSendToday = false; 
 
 	private static CadetRepository group = CadetRepositorySerializer.load();
 
@@ -88,37 +90,46 @@ public class DutyBot extends TelegramLongPollingBot {
 				System.out.println(recivedChatId + ":\n" + recivedText);
 			}
 
-			if (recivedChatId.equals(groupId) && recivedText.contains("@cool_duty_bot")) {
+			if (recivedChatId.equals(groupId) && recivedText.contains("@cool_duty_bot") && !recivedText.equals("/show@cool_duty_bot")) {
 				sendMessage(groupId, "Закрий єблєт");
 			} else if ((recivedChatId.equals(adminId) || recivedMassage.getFrom().getId().toString().equals(adminId))
 					&& recivedText.equals("/test")) {
-				sendScheduledMessage();
+				test();
 			} else if ((recivedChatId.equals(adminId) || recivedMassage.getFrom().getId().toString().equals(adminId))
 					&& recivedText.equals("/save")) {
+				group.accept();
 				CadetRepositorySerializer.save(group);
 				sendMessage(recivedChatId, "Зберіглось!!!");
+			} else if ((recivedChatId.equals(adminId) || sergantIds.contains(recivedChatId) || recivedChatId.equals(groupId) )
+					&& (recivedText.equals("/show") || recivedText.equals("/show@cool_duty_bot"))){
+				group.sortById();
+				sendMessage(recivedChatId, group.showAll());
+				
 			}
 			try {
-				if (recivedText.equals("/ok") && sergantIds.contains(recivedChatId) && recivedChatId.equals(adminId)) {
+				if (recivedText.equals("/ok") && (sergantIds.contains(recivedChatId) || recivedChatId.equals(adminId)) && !isSendToday) {
 					group.accept();
 					group.setAllFree();
 					CadetRepositorySerializer.save(group);
 					String message = terkaOnTomorrow + '\n' + cubarOnTomorrow + '\n' + audOnTomorrow;
 					CadetRepositorySerializer.saveLog(LocalDate.now() + "\n" + message + "\n-");
-					sendMessage(adminId, message);
-				} else if (recivedText.equals("/edit_terka") && sergantIds.contains(recivedChatId)) {
+					sendMessage(groupId, message);
+				} else if (recivedText.equals("/edit_terka") && sergantIds.contains(recivedChatId) && !isSendToday) {
 					editorChatId = recivedChatId;
 					terkaOrCubarOrAudIndex = 0;
+					group.sortByTerka();
 					sendMessage(editorChatId,
 							"Через пробіл вкажіть номера кого ви хочете поставити на територію:\n" + group.showAll());
-				} else if (recivedText.equals("/edit_cubar") && sergantIds.contains(recivedChatId)) {
+				} else if (recivedText.equals("/edit_cubar") && sergantIds.contains(recivedChatId) && !isSendToday) {
 					editorChatId = recivedChatId;
 					terkaOrCubarOrAudIndex = 1;
+					group.sortByCubar();
 					sendMessage(editorChatId,
 							"Через пробіл вкажіть номера кого ви хочете поставити на кубарь:\n" + group.showAll());
-				} else if (recivedText.equals("/edit_aud") && sergantIds.contains(recivedChatId)) {
+				} else if (recivedText.equals("/edit_aud") && sergantIds.contains(recivedChatId) && !isSendToday) {
 					editorChatId = recivedChatId;
 					terkaOrCubarOrAudIndex = 2;
+					group.sortByAud();
 					sendMessage(editorChatId,
 							"Через пробіл вкажіть номера кого ви хочете поставити на аудиторію:\n" + group.showAll());
 				} else if (recivedChatId.equals(editorChatId) && !recivedText.contains("/")) {
@@ -169,10 +180,17 @@ public class DutyBot extends TelegramLongPollingBot {
 			}
 		}
 	}
-
-	@Scheduled(cron = "0 0 20 * * ?")
-	public void sendScheduledMessage() {
+	private void test() {
 		group.setAllFree();
+		terkaOnTomorrow = "Територія: " + group.terka();
+		cubarOnTomorrow = "Кубарь: " + group.cubar();
+		audOnTomorrow = "Аудиторія: " + group.aud();
+		sendMessage(adminId, terkaOnTomorrow + '\n' + cubarOnTomorrow + '\n' + audOnTomorrow);
+	}
+	@Scheduled(cron = "0 20 19 * * ?")
+	public void sendScheduledMessage() { 
+		group.setAllFree();
+//		isSendToday = false;
 		terkaOnTomorrow = "Територія: " + group.terka();
 		cubarOnTomorrow = "Кубарь: " + group.cubar();
 		audOnTomorrow = "Аудиторія: " + group.aud();
@@ -180,11 +198,11 @@ public class DutyBot extends TelegramLongPollingBot {
 			sendMessage(sergantId, terkaOnTomorrow + '\n' + cubarOnTomorrow + '\n' + audOnTomorrow);
 		}
 	}
-
 	private void sendMessage(String chatId, String text) {
 		SendMessage message = new SendMessage();
 		message.setChatId(chatId);
 		message.setText(text);
+		message.setParseMode("HTML");
 		String sendText = "";
 		try {
 			if (nameById.containsKey(chatId)) {

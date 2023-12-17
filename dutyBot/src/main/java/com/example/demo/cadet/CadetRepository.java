@@ -16,7 +16,8 @@ public class CadetRepository {
 	private static List<Cadet> audAcceptList = new ArrayList<>();
 
 	public String showAll() {
-		return group.stream().map((Cadet c) -> c.getId() + ". " + c.getSurname()).collect(Collectors.joining("\n"));
+		String res = String.format("%12s%-4s%-4s%-4s\n","", "Тер","Куб","Ауд");
+		return "<code>" + res + group.stream().map((Cadet c) -> String.format("%-3d%-9s%-4d%-4d%-4d",c.getId(),c.getSurname(),c.getTerkaCount(),c.getCubarCount(),c.getAudCount())).collect(Collectors.joining("\n")) + "</code>";
 	}
 
 	public void setAllFree() {
@@ -36,7 +37,7 @@ public class CadetRepository {
 
 	}
 
-	private void sortByTerka() {
+	public void sortByTerka() {
 		group.sort((c1, c2) -> {
 			int result = Integer.compare(c1.getTerkaCount(), c2.getTerkaCount());
 			return result == 0 ? Integer.compare(c1.getId(), c2.getId()) : result;
@@ -44,14 +45,18 @@ public class CadetRepository {
 		});
 	}
 
-	private void sortByCubar() {
+	public void sortById() {
+		group.sort((c1, c2) -> Integer.compare(c1.getId(), c2.getId()));
+	}
+
+	public void sortByCubar() {
 		group.sort((c1, c2) -> {
 			int result = Integer.compare(c1.getCubarCount(), c2.getCubarCount());
 			return result == 0 ? Integer.compare(c1.getId(), c2.getId()) : result;
 		});
 	}
 
-	private void sortByAud() {
+	public void sortByAud() {
 		group.sort((c1, c2) -> {
 			int result = Integer.compare(c1.getAudCount(), c2.getAudCount());
 			return result == 0 ? Integer.compare(c1.getId(), c2.getId()) : result;
